@@ -1,7 +1,6 @@
 //! Server implementation for the `bore` service.
 
 use std::{io, net::SocketAddr, ops::RangeInclusive, sync::Arc, time::Duration};
-
 use anyhow::Result;
 use dashmap::DashMap;
 use tokio::io::AsyncWriteExt;
@@ -15,6 +14,9 @@ use crate::shared::{proxy, ClientMessage, Delimited, ServerMessage, CONTROL_PORT
 
 /// State structure for the server.
 pub struct Server {
+
+    /// Concurrent Bind IP address.
+    bind_ip: String,
     /// Range of TCP ports that can be forwarded.
     port_range: RangeInclusive<u16>,
 
@@ -23,13 +25,18 @@ pub struct Server {
 
     /// Concurrent map of IDs to incoming connections.
     conns: Arc<DashMap<Uuid, TcpStream>>,
+
 }
 
 impl Server {
     /// Create a new server with a specified minimum port number.
-    pub fn new(port_range: RangeInclusive<u16>, secret: Option<&str>) -> Self {
+    pub fn new(bind_ip: Option<&str>,port_range: RangeInclusive<u16>, secret: Option<&str>) -> Self {
         assert!(!port_range.is_empty(), "must provide at least one port");
+        info!(bind_ip);
         Server {
+            // 如果是空 放入0.0.0.0
+            // 如果不是空 放入值
+            bind_ip: String::from(bind_ip.unwrap_or("127.0.0.1").to_owned()),
             port_range,
             conns: Arc::new(DashMap::new()),
             auth: secret.map(Authenticator::new),
@@ -62,7 +69,7 @@ impl Server {
 
     async fn create_listener(&self, port: u16) -> Result<TcpListener, &'static str> {
         let try_bind = |port: u16| async move {
-            TcpListener::bind(("0.0.0.0", port))
+            TcpListener::bind((self.bind_ip.as_str(), port))
                 .await
                 .map_err(|err| match err.kind() {
                     io::ErrorKind::AddrInUse => "port already in use",
