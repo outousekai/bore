@@ -20,3 +20,7 @@ if [ -z "$RELEASE_BUILD" ]; then
 else
     $CROSS build --target $TARGET_TRIPLE --all-features --release
 fi
+
+
+# cargo install cross
+# cross build --target x86_64-unknown-linux-musl --release

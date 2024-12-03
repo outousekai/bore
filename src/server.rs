@@ -67,9 +67,9 @@ impl Server {
         }
     }
 
-    async fn create_listener(&self, port: u16) -> Result<TcpListener, &'static str> {
-        let try_bind = |port: u16| async move {
-            TcpListener::bind((self.bind_ip.as_str(), port))
+    async fn create_listener(&self,bind_ip: Option<String>, port: u16) -> Result<TcpListener, &'static str> {
+        let try_bind = |bip:Option<String>,port: u16| async move {
+            TcpListener::bind((bip.unwrap_or(String::from(self.bind_ip.as_str())).to_owned().clone().as_str(), port))
                 .await
                 .map_err(|err| match err.kind() {
                     io::ErrorKind::AddrInUse => "port already in use",
@@ -82,7 +82,7 @@ impl Server {
             if !self.port_range.contains(&port) {
                 return Err("client port number not in allowed range");
             }
-            try_bind(port).await
+            try_bind(bind_ip.clone(),port).await
         } else {
             // Client requests any available port in range.
             //
@@ -95,7 +95,7 @@ impl Server {
             // conditions, when ε=0.15 and δ=0.00001.
             for _ in 0..150 {
                 let port = fastrand::u16(self.port_range.clone());
-                match try_bind(port).await {
+                match try_bind(bind_ip.clone(),port).await {
                     Ok(listener) => return Ok(listener),
                     Err(_) => continue,
                 }
@@ -119,8 +119,8 @@ impl Server {
                 warn!("unexpected authenticate");
                 Ok(())
             }
-            Some(ClientMessage::Hello(port)) => {
-                let listener = match self.create_listener(port).await {
+            Some(ClientMessage::Hello(bind_ip,port)) => {
+                let listener = match self.create_listener(bind_ip,port).await {
                     Ok(listener) => listener,
                     Err(err) => {
                         stream.send(ServerMessage::Error(err.into())).await?;

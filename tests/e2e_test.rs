@@ -19,7 +19,7 @@ lazy_static! {
 
 /// Spawn the server, giving some time for the control port TcpListener to start.
 async fn spawn_server(secret: Option<&str>) {
-    tokio::spawn(Server::new(1024..=65535, secret).listen());
+    tokio::spawn(Server::new(None,1024..=65535, secret).listen());
     time::sleep(Duration::from_millis(50)).await;
 }
 
@@ -27,7 +27,7 @@ async fn spawn_server(secret: Option<&str>) {
 async fn spawn_client(secret: Option<&str>) -> Result<(TcpListener, SocketAddr)> {
     let listener = TcpListener::bind("localhost:0").await?;
     let local_port = listener.local_addr()?.port();
-    let client = Client::new("localhost", local_port, "localhost", 0, secret).await?;
+    let client = Client::new("localhost", local_port, "localhost", 0, secret,None).await?;
     let remote_addr = ([127, 0, 0, 1], client.remote_port()).into();
     tokio::spawn(client.listen());
     Ok((listener, remote_addr))
@@ -86,7 +86,7 @@ async fn mismatched_secret(
 async fn invalid_address() -> Result<()> {
     // We don't need the serial guard for this test because it doesn't create a server.
     async fn check_address(to: &str, use_secret: bool) -> Result<()> {
-        match Client::new("localhost", 5000, to, 0, use_secret.then_some("a secret")).await {
+        match Client::new("localhost", 5000, to, 0, use_secret.then_some("a secret"),None).await {
             Ok(_) => Err(anyhow!("expected error for {to}, use_secret={use_secret}")),
             Err(_) => Ok(()),
         }
@@ -125,5 +125,5 @@ async fn very_long_frame() -> Result<()> {
 fn empty_port_range() {
     let min_port = 5000;
     let max_port = 3000;
-    let _ = Server::new(min_port..=max_port, None);
+    let _ = Server::new(None,min_port..=max_port, None);
 }

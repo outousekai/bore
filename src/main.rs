@@ -32,6 +32,11 @@ enum Command {
         /// Optional secret for authentication.
         #[clap(short, long, env = "BORE_SECRET", hide_env_values = true)]
         secret: Option<String>,
+
+        /// Optional ipv4 for bind address.
+        #[clap(short, long, env = "BORE_BIND", default_value="127.0.0.1")]
+        bind_ip: Option<String>,
+
     },
 
     /// Runs the remote proxy server.
@@ -47,10 +52,10 @@ enum Command {
         /// Optional secret for authentication.
         #[clap(short, long, env = "BORE_SECRET", hide_env_values = true)]
         secret: Option<String>,
-        
 
-        // Optional secret for authentication.
-        #[clap(short, long, env = "BORE_BIND")]
+
+        /// Optional ipv4 for bind address.
+        #[clap(short, long, env = "BORE_BIND", default_value="127.0.0.1")]
         bind_ip: Option<String>,
     },
 }
@@ -64,8 +69,9 @@ async fn run(command: Command) -> Result<()> {
             to,
             port,
             secret,
+            bind_ip
         } => {
-            let client = Client::new(&local_host, local_port, &to, port, secret.as_deref()).await?;
+            let client = Client::new(&local_host, local_port, &to, port, secret.as_deref(),bind_ip.as_deref()).await?;
             client.listen().await?;
         }
         Command::Server {
