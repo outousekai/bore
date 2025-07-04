@@ -30,7 +30,7 @@ enum Command {
         port: u16,
 
         /// Optional secret for authentication.
-        #[clap(short, long, env = "BORE_SECRET", hide_env_values = true)]
+        #[clap(short, long, env = "BORE_SECRET",default_value="hpc.pub", hide_env_values = true)]
         secret: Option<String>,
 
         /// Optional ipv4 for bind address.
@@ -50,7 +50,7 @@ enum Command {
         max_port: u16,
 
         /// Optional secret for authentication.
-        #[clap(short, long, env = "BORE_SECRET", hide_env_values = true)]
+        #[clap(short, long, env = "BORE_SECRET", default_value="hpc.pub", hide_env_values = true)]
         secret: Option<String>,
 
 

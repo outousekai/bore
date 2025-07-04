@@ -117,6 +117,7 @@ async fn very_long_frame() -> Result<()> {
         }
         time::sleep(Duration::from_millis(10)).await;
     }
+    
     panic!("did not exit after a 1 MB frame");
 }
 

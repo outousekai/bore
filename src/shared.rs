@@ -15,10 +15,10 @@ use uuid::Uuid;
 pub const CONTROL_PORT: u16 = 7837;
 
 /// Maximum byte length for a JSON frame in the stream.
-pub const MAX_FRAME_LENGTH: usize = 256;
+pub const MAX_FRAME_LENGTH: usize = 512;
 
 /// Timeout for network connections and initial protocol messages.
-pub const NETWORK_TIMEOUT: Duration = Duration::from_secs(3);
+pub const NETWORK_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// A message from the client on the control connection.
 #[derive(Debug, Serialize, Deserialize)]

@@ -42,7 +42,7 @@ impl Server {
             auth: secret.map(Authenticator::new),
         }
     }
-
+    
     /// Start the server, listening for new connections.
     pub async fn listen(self) -> Result<()> {
         let this = Arc::new(self);
@@ -69,7 +69,7 @@ impl Server {
 
     async fn create_listener(&self,bind_ip: Option<String>, port: u16) -> Result<TcpListener, &'static str> {
         let try_bind = |bip:Option<String>,port: u16| async move {
-            TcpListener::bind((bip.unwrap_or(String::from(self.bind_ip.as_str())).to_owned().clone().as_str(), port))
+            TcpListener::bind((bip.unwrap_or(String::from(self.bind_ip.as_str())).to_owned().as_str(), port))
                 .await
                 .map_err(|err| match err.kind() {
                     io::ErrorKind::AddrInUse => "port already in use",
@@ -78,21 +78,13 @@ impl Server {
                 })
         };
         if port > 0 {
-            // Client requests a specific port number.
+            // 客户端绑定了特定的IP
             if !self.port_range.contains(&port) {
                 return Err("client port number not in allowed range");
             }
             try_bind(bind_ip.clone(),port).await
         } else {
-            // Client requests any available port in range.
-            //
-            // In this case, we bind to 150 random port numbers. We choose this value because in
-            // order to find a free port with probability at least 1-δ, when ε proportion of the
-            // ports are currently available, it suffices to check approximately -2 ln(δ) / ε
-            // independently and uniformly chosen ports (up to a second-order term in ε).
-            //
-            // Checking 150 times gives us 99.999% success at utilizing 85% of ports under these
-            // conditions, when ε=0.15 and δ=0.00001.
+            // 随机绑定150次,即便占用了85%的端口,随机150次也足够保证找到空闲端口的概率大于99.999%
             for _ in 0..150 {
                 let port = fastrand::u16(self.port_range.clone());
                 match try_bind(bind_ip.clone(),port).await {

@@ -1,5 +1,6 @@
 //! Client implementation for the `bore` service.
 
+use std::process::exit;
 use std::sync::Arc;
 
 use anyhow::{bail, Context, Result};
@@ -16,7 +17,7 @@ use crate::shared::{
 pub struct Client {
     /// Control connection to the server.
     conn: Option<Delimited<TcpStream>>,
-
+    
     /// Destination address of the server.
     to: String,
 
@@ -86,7 +87,7 @@ impl Client {
         let mut conn = self.conn.take().unwrap();
         let this = Arc::new(self);
         loop {
-            match conn.recv().await? {
+            match conn.recv_timeout().await? {
                 Some(ServerMessage::Hello(_)) => warn!("unexpected hello"),
                 Some(ServerMessage::Challenge(_)) => warn!("unexpected challenge"),
                 Some(ServerMessage::Heartbeat) => (),
@@ -104,7 +105,11 @@ impl Client {
                     );
                 }
                 Some(ServerMessage::Error(err)) => error!(%err, "server error"),
-                None => return Ok(()),
+                None => {
+                    warn!("server no have return msg,close this client now");
+                    exit(1);
+                    // return Ok(())
+                },
             }
         }
     }
