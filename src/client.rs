@@ -33,7 +33,8 @@ pub struct Client {
     /// Optional secret used to authenticate clients.
     auth: Option<Authenticator>,
     
-    // 提供给服务端,进行绑定的IP地址
+    // // 提供给服务端,进行绑定的IP地址
+    // #[allow(dead_code)]
     // server_bind_ip: String,
 }
 
@@ -52,7 +53,7 @@ impl Client {
         if let Some(auth) = &auth {
             auth.client_handshake(&mut stream).await?;
         }
-        println!("Connecting to {}:{}", local_host, port);
+        info!("Connecting to {}:{}", local_host, local_port);
         stream.send(ClientMessage::Hello(bind_ip.map(|s| s.to_string()),port)).await?;
         let remote_port = match stream.recv_timeout().await? {
             Some(ServerMessage::Hello(remote_port)) => remote_port,
@@ -70,10 +71,10 @@ impl Client {
             conn: Some(stream),
             to: to.to_string(),
             local_host: local_host.to_string(),
-            // server_bind_ip: bind_ip.unwrap_or("127.0.0.1").to_string(),
             local_port,
             remote_port,
             auth,
+            // server_bind_ip: bind_ip.unwrap_or("127.0.0.1").to_string(),
         })
     }
 
