@@ -1,4 +1,4 @@
-//! Client implementation for the `bore` service.
+//! `bore` 服务的客户端实现。
 
 use std::process::exit;
 use std::sync::Arc;
@@ -13,24 +13,24 @@ use crate::shared::{
     proxy, ClientMessage, Delimited, ServerMessage, CONTROL_PORT, NETWORK_TIMEOUT,
 };
 
-/// State structure for the client.
+/// 客户端的状态结构体。
 pub struct Client {
-    /// Control connection to the server.
+    /// 到服务器的控制连接。
     conn: Option<Delimited<TcpStream>>,
     
-    /// Destination address of the server.
+    /// 服务器的目标地址。
     to: String,
 
-    // Local host that is forwarded.
+    // 被转发的本地主机。
     local_host: String,
 
-    /// Local port that is forwarded.
+    /// 被转发的本地端口。
     local_port: u16,
 
-    /// Port that is publicly available on the remote.
+    /// 在远程公开可用的端口。
     remote_port: u16,
 
-    /// Optional secret used to authenticate clients.
+    /// 用于认证客户端的可选密钥。
     auth: Option<Authenticator>,
     
     // // 提供给服务端,进行绑定的IP地址
@@ -39,7 +39,7 @@ pub struct Client {
 }
 
 impl Client {
-    /// Create a new client.
+    /// 创建一个新的客户端。
     pub async fn new(
         local_host: &str,
         local_port: u16,
@@ -53,7 +53,6 @@ impl Client {
         if let Some(auth) = &auth {
             auth.client_handshake(&mut stream).await?;
         }
-        info!("Connecting to {}:{}", local_host, local_port);
         stream.send(ClientMessage::Hello(bind_ip.map(|s| s.to_string()),port)).await?;
         let remote_port = match stream.recv_timeout().await? {
             Some(ServerMessage::Hello(remote_port)) => remote_port,
@@ -64,12 +63,10 @@ impl Client {
             Some(_) => bail!("unexpected initial non-hello message"),
             None => bail!("unexpected EOF"),
         };
-        info!(remote_port, "connected to server");
-
         #[cfg(windows)]
-        info!("实际连接地址 {to}:{remote_port}");
+        info!("{local_host}:{local_port} 实际连接地址 {to}:{remote_port} 允许访问范围 {bind_ip:?}");
         #[cfg(not(windows))]
-        info!("listening at {to}:{remote_port}");
+        info!("{local_host}:{local_port} listening at {to}:{remote_port} bind_ip is {bind_ip:?}");
 
         Ok(Client {
             conn: Some(stream),
@@ -82,12 +79,12 @@ impl Client {
         })
     }
 
-    /// Returns the port publicly available on the remote.
+    /// 返回远程公开可用的端口。
     pub fn remote_port(&self) -> u16 {
         self.remote_port
     }
 
-    /// Start the client, listening for new connections.
+    /// 启动客户端，监听新的连接。
     pub async fn listen(mut self) -> Result<()> {
         let mut conn = self.conn.take().unwrap();
         let this = Arc::new(self);
@@ -119,6 +116,7 @@ impl Client {
         }
     }
 
+    /// 处理单个代理连接。
     async fn handle_connection(&self, id: Uuid) -> Result<()> {
         let mut remote_conn =
             Delimited::new(connect_with_timeout(&self.to[..], CONTROL_PORT).await?);
@@ -129,12 +127,13 @@ impl Client {
         let mut local_conn = connect_with_timeout(&self.local_host, self.local_port).await?;
         let parts = remote_conn.into_parts();
         debug_assert!(parts.write_buf.is_empty(), "framed write buffer not empty");
-        local_conn.write_all(&parts.read_buf).await?; // mostly of the cases, this will be empty
+        local_conn.write_all(&parts.read_buf).await?; // 大多数情况下，这里是空的
         proxy(local_conn, parts.io).await?;
         Ok(())
     }
 }
 
+/// 尝试在指定超时时间内连接到目标地址和端口。
 async fn connect_with_timeout(to: &str, port: u16) -> Result<TcpStream> {
     match timeout(NETWORK_TIMEOUT, TcpStream::connect((to, port))).await {
         Ok(res) => res,
