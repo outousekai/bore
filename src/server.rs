@@ -1,4 +1,4 @@
-//! Server implementation for the `bore` service.
+//! `bore` 服务的服务器端实现。
 
 use std::{io, net::SocketAddr, ops::RangeInclusive, sync::Arc, time::Duration};
 use anyhow::Result;
@@ -12,24 +12,24 @@ use uuid::Uuid;
 use crate::auth::Authenticator;
 use crate::shared::{proxy, ClientMessage, Delimited, ServerMessage, CONTROL_PORT};
 
-/// State structure for the server.
+/// 服务器的状态结构体。
 pub struct Server {
 
-    /// Concurrent Bind IP address.
+    /// 并发绑定的IP地址。
     bind_ip: String,
-    /// Range of TCP ports that can be forwarded.
+    /// 可转发的TCP端口范围。
     port_range: RangeInclusive<u16>,
 
-    /// Optional secret used to authenticate clients.
+    /// 用于认证客户端的可选密钥。
     auth: Option<Authenticator>,
 
-    /// Concurrent map of IDs to incoming connections.
+    /// ID到入站连接的并发映射。
     conns: Arc<DashMap<Uuid, TcpStream>>,
 
 }
 
 impl Server {
-    /// Create a new server with a specified minimum port number.
+    /// 使用指定的最小端口号创建一个新的服务器。
     pub fn new(bind_ip: Option<&str>,port_range: RangeInclusive<u16>, secret: Option<&str>) -> Self {
         assert!(!port_range.is_empty(), "must provide at least one port");
         info!(bind_ip);
@@ -43,7 +43,7 @@ impl Server {
         }
     }
     
-    /// Start the server, listening for new connections.
+    /// 启动服务器，监听新的连接。
     pub async fn listen(self) -> Result<()> {
         let this = Arc::new(self);
         let addr = SocketAddr::from(([0, 0, 0, 0], CONTROL_PORT));
@@ -84,7 +84,7 @@ impl Server {
             }
             try_bind(bind_ip.clone(),port).await
         } else {
-            // 随机绑定150次,即便占用了85%的端口,随机150次也足够保证找到空闲端口的概率大于99.999%
+            // 随机绑定150次，即便占用了85%的端口，随机150次也足够保证找到空闲端口的概率大于99.999%
             for _ in 0..150 {
                 let port = fastrand::u16(self.port_range.clone());
                 match try_bind(bind_ip.clone(),port).await {
@@ -125,7 +125,7 @@ impl Server {
 
                 loop {
                     if stream.send(ServerMessage::Heartbeat).await.is_err() {
-                        // Assume that the TCP connection has been dropped.
+                        // 假设TCP连接已断开。
                         return Ok(());
                     }
                     const TIMEOUT: Duration = Duration::from_millis(500);
@@ -138,7 +138,7 @@ impl Server {
 
                         conns.insert(id, stream2);
                         tokio::spawn(async move {
-                            // Remove stale entries to avoid memory leaks.
+                            // 移除过期的条目以避免内存泄漏。
                             sleep(Duration::from_secs(10)).await;
                             if conns.remove(&id).is_some() {
                                 warn!(%id, "removed stale connection");
