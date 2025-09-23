@@ -65,6 +65,10 @@ impl Client {
             None => bail!("unexpected EOF"),
         };
         info!(remote_port, "connected to server");
+
+        #[cfg(windows)]
+        info!("实际连接地址 {to}:{remote_port}");
+        #[cfg(not(windows))]
         info!("listening at {to}:{remote_port}");
 
         Ok(Client {
