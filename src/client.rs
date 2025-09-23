@@ -64,9 +64,9 @@ impl Client {
             None => bail!("unexpected EOF"),
         };
         #[cfg(windows)]
-        info!("{local_host}:{local_port} 实际连接地址 {to}:{remote_port} 允许访问范围 {bind_ip:?}");
+        info!("{local_host}:{local_port} 实际访问地址 {to}:{remote_port}");
         #[cfg(not(windows))]
-        info!("{local_host}:{local_port} listening at {to}:{remote_port} bind_ip is {bind_ip:?}");
+        info!("{local_host}:{local_port} ==> {to}:{remote_port} <== {bind_ip:#?}");
 
         Ok(Client {
             conn: Some(stream),
