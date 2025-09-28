@@ -63,10 +63,11 @@ impl Client {
             Some(_) => bail!("unexpected initial non-hello message"),
             None => bail!("unexpected EOF"),
         };
+
         #[cfg(windows)]
         info!("{local_host}:{local_port} 实际访问地址 {to}:{remote_port}");
         #[cfg(not(windows))]
-        info!("{local_host}:{local_port} ==> {to}:{remote_port} <== {bind_ip:#?}");
+        info!("{local_host}:{local_port} ==> {to}:{remote_port} <== {}",bind_ip.unwrap_or("127.0.0.1"));
 
         Ok(Client {
             conn: Some(stream),
